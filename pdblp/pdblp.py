@@ -716,17 +716,15 @@ class BCon(object):
         logger = _get_logger(self.debug)
         request = self.insService.createRequest('instrumentListRequest')
         request.set('query', query)
-        request.set('yellowKeyFilter', "YK_FILTER_CORP")
         request.set('languageOverride', "LANG_OVERRIDE_NONE")
         request.set('maxResults', 10)
         logger.info('Sending Request:\n{}'.format(request))
         self._session.sendRequest(request, identity=self._identity)
         data = []
         for msg in self._receive_events(to_dict=False):
-            for v in msg.getElement("DataRecords").values():
-                for f in v.getElement("DataFields").values():
-                    data.append(f.getElementAsString("StringValue"))
-        return pd.DataFrame(data)
+            for v in msg.getElement("results").values():
+                data.append([f for f in v.getElement("security").values()] + [f for f in v.getElement("description").values()])
+        return pd.DataFrame(data, columns = ["Security", "Description"])
 
     def stop(self):
         """
