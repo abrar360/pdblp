@@ -182,6 +182,20 @@ class BCon(object):
             logger.warning('Failed to open //blp/exrsvc')
             raise ConnectionError('Could not open a //blp/exrsvc service')
         self.exrService = self._session.getService('//blp/exrsvc')
+        
+        opened = self._session.openService('//blp/instruments')
+        ev = self._session.nextEvent()
+        ev_name = _EVENT_DICT[ev.eventType()]
+        logger.info('Event Type: {!r}'.format(ev_name))
+        for msg in ev:
+            logger.info('Message Received:\n{}'.format(msg))
+        if ev.eventType() != blpapi.Event.SERVICE_STATUS:
+            raise RuntimeError('Expected a "SERVICE_STATUS" event but '
+                               'received a {!r}'.format(ev_name))
+        if not opened:
+            logger.warning('Failed to open //blp/instruments')
+            raise ConnectionError('Could not open a //blp/instruments service')
+        self.insService = self._session.getService('//blp/instruments')
 
         return self
 
@@ -681,7 +695,7 @@ class BCon(object):
         data = pd.DataFrame(data).set_index('time').sort_index().loc[:, flds]
         return data
 
-    def bsrch(self, domain):
+    def bsrch(self, query):
         """
         This function uses the Bloomberg API to retrieve 'bsrch' (Bloomberg
         SRCH Data) queries. Returns list of tickers.
@@ -700,8 +714,11 @@ class BCon(object):
             List of bloomberg tickers from the BSRCH
         """
         logger = _get_logger(self.debug)
-        request = self.exrService.createRequest('ExcelGetGridRequest')
-        request.set('Domain', domain)
+        request = self.insService.createRequest('instrumentListRequest')
+        request.set('query', query)
+        request.set('yellowKeyFilter', "YK_FILTER_CORP")
+        request.set('languageOverride', "LANG_OVERRIDE_NONE")
+        request.set('maxResults', 10)
         logger.info('Sending Request:\n{}'.format(request))
         self._session.sendRequest(request, identity=self._identity)
         data = []
