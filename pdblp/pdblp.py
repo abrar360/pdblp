@@ -695,7 +695,7 @@ class BCon(object):
         data = pd.DataFrame(data).set_index('time').sort_index().loc[:, flds]
         return data
 
-    def bsrch(self, query):
+    def bsrch(self, query, filter=None):
         """
         This function uses the Bloomberg API to retrieve 'bsrch' (Bloomberg
         SRCH Data) queries. Returns list of tickers.
@@ -716,6 +716,8 @@ class BCon(object):
         logger = _get_logger(self.debug)
         request = self.insService.createRequest('instrumentListRequest')
         request.set('query', query)
+        if filter:
+            request.set('yellowKeyFilter', filter)
         request.set('languageOverride', "LANG_OVERRIDE_NONE")
         request.set('maxResults', 10)
         logger.info('Sending Request:\n{}'.format(request))
